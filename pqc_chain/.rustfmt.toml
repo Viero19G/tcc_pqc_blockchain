@@ -1,0 +1,4 @@
+edition = "2021"
+reorder_imports = true
+use_field_init_simplification = true
+use_try_shorthand = true

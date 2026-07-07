@@ -1,0 +1,39 @@
+[package]
+name = "pqc-crypto"
+description = "Post-quantum cryptography primitives (ML-DSA FIPS 204, ML-KEM FIPS 203) for Entangle."
+version = "0.1.0"
+license = "MIT-0"
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+publish = false
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+codec = { workspace = true, default-features = false, features = ["derive", "max-encoded-len"] }
+ml-dsa = { version = "0.1.1", default-features = false, features = ["alloc"] }
+ml-kem = { version = "0.3.2", default-features = false, features = ["alloc"] }
+rand_core = { version = "0.6.4", default-features = false }
+scale-info = { workspace = true, default-features = false, features = ["derive"] }
+sp-core = { workspace = true, default-features = false }
+sp-runtime = { workspace = true, default-features = false }
+
+[dev-dependencies]
+rand = { version = "0.8.5", features = ["std_rng"] }
+
+[features]
+default = ["std"]
+std = [
+	"codec/std",
+	"ml-dsa/alloc",
+	"ml-dsa/getrandom",
+	"ml-kem/alloc",
+	"ml-kem/getrandom",
+	"rand_core/std",
+	"scale-info/std",
+	"sp-core/std",
+	"sp-runtime/std",
+]
