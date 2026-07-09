@@ -20,5 +20,10 @@ pub mod mlkem;
 
 pub use constants::*;
 pub use hybrid::{HybridPublic, HybridSignature, SignatureScheme};
-pub use mldsa::{MlDsaKeypair, MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature};
-pub use mlkem::{MlKemCiphertext, MlKemKeypair, MlKemPublicKey, MlKemSecretKey, MlKemSharedSecret};
+pub use mldsa::{MlDsaPublicKey, MlDsaSecretKey, MlDsaSignature};
+pub use mlkem::{MlKemCiphertext, MlKemPublicKey, MlKemSecretKey, MlKemSharedSecret};
+
+#[cfg(feature = "std")]
+pub use mldsa::MlDsaKeypair;
+#[cfg(feature = "std")]
+pub use mlkem::MlKemKeypair;
