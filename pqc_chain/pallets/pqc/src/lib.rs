@@ -11,6 +11,8 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+extern crate alloc;
+
 pub use pallet::*;
 
 #[cfg(test)]
@@ -25,6 +27,7 @@ pub use weights::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
+	use alloc::vec::Vec;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 	use pqc_crypto::{
@@ -85,6 +88,8 @@ pub mod pallet {
 			scheme: SignatureScheme,
 			has_kem: bool,
 		},
+		/// Assinatura ML-DSA validada com sucesso.
+		SignatureVerified { who: T::AccountId },
 		/// Sessão ML-KEM estabelecida.
 		SessionEstablished {
 			session_id: u64,
@@ -204,7 +209,7 @@ pub mod pallet {
 
 			Sessions::<T>::insert(
 				session_id,
-				SessionRecord { initiator, responder, shared_secret_hash },
+				SessionRecord { initiator: initiator.clone(), responder: responder.clone(), shared_secret_hash },
 			);
 
 			Self::deposit_event(Event::SessionEstablished { session_id, initiator, responder });
