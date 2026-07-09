@@ -1,0 +1,2 @@
+Node testado com sucesso em Thu Jul  9 20:13:33 -03 2026
+Comando usado: ./target/release/entangle-node --dev --rpc-cors all --rpc-methods unsafe
