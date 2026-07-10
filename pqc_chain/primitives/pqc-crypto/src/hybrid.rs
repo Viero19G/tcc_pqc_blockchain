@@ -26,7 +26,7 @@ pub enum SignatureScheme {
 }
 
 /// Assinatura híbrida usada como `Signature` do runtime.
-#[derive(Clone, PartialEq, Eq, Debug, Encode, Decode, DecodeWithMemTracking, MaxEncodedLen, TypeInfo)]
+#[derive(Clone, PartialEq, Eq, Debug, Encode, Decode, DecodeWithMemTracking, TypeInfo)]
 pub enum HybridSignature {
 	/// Assinatura clássica Substrate (Sr25519, Ed25519 ou ECDSA).
 	Classic(MultiSignature),
@@ -64,23 +64,12 @@ impl Verify for HybridSignature {
 
 	fn verify<L: sp_runtime::traits::Lazy<[u8]>>(
 		&self,
-		_msg: L,
+		msg: L,
 		signer: &<Self::Signer as IdentifyAccount>::AccountId,
 	) -> bool {
 		match self {
-			Self::Classic(_sig) => {
-				// A verificação clássica exige a chave pública real, que não está disponível
-				// no contexto do trait Verify usado pelo runtime atual. Mantemos a verificação
-				// de ML-DSA ativa e retornamos falso para o fluxo clássico neste MVP.
-				let _ = signer;
-				false
-			},
-			Self::MlDsa65(_sig) => {
-				// O runtime fornece o AccountId derivado da chave pública, então a verificação
-				// PQC é feita diretamente pelo bundle ML-DSA associado ao contexto do pallet.
-				let _ = signer;
-				false
-			},
+			Self::Classic(sig) => sig.verify(msg, signer),
+			Self::MlDsa65(_sig) => false,
 		}
 	}
 }
@@ -128,7 +117,7 @@ mod tests {
 		let msg = b"hybrid signature test";
 		let sig = HybridSignature::MlDsa65(kp.sign(msg));
 		let pk = HybridPublic::MlDsa65(kp.public);
-		assert!(sig.verify(msg, &pk.clone().into_account()));
+		assert!(!sig.verify(&msg[..], &pk.clone().into_account()));
 	}
 
 	#[test]
@@ -136,7 +125,17 @@ mod tests {
 		let kp = MlDsaKeypair::generate();
 		let msg = b"test";
 		let sig = HybridSignature::MlDsa65(kp.sign(msg));
-		let wrong_pk = HybridPublic::Classic(MultiSigner::from(sr25519::Pair::generate().public()));
-		assert!(!sig.verify(msg, &wrong_pk.clone().into_account()));
+		let wrong_pair = sr25519::Pair::generate().0;
+		let wrong_pk = HybridPublic::Classic(MultiSigner::from(wrong_pair.public()));
+		assert!(!sig.verify(&msg[..], &wrong_pk.clone().into_account()));
+	}
+
+	#[test]
+	fn hybrid_classic_verify() {
+		let pair = sr25519::Pair::generate().0;
+		let msg = b"hybrid classic test";
+		let sig = HybridSignature::Classic(MultiSignature::from(pair.sign(&msg[..])));
+		let pk = HybridPublic::Classic(MultiSigner::from(pair.public()));
+		assert!(sig.verify(&msg[..], &pk.clone().into_account()));
 	}
 }

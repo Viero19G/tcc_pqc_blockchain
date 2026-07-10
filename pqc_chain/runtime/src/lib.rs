@@ -13,9 +13,8 @@ use alloc::vec::Vec;
 use sp_runtime::{
 	generic, impl_opaque_keys,
 	traits::{BlakeTwo256, IdentifyAccount, Verify},
-	MultiAddress,
+	MultiAddress, MultiSignature,
 };
-use pqc_crypto::HybridSignature;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -113,8 +112,8 @@ pub fn native_version() -> NativeVersion {
 	NativeVersion { runtime_version: VERSION, can_author_with: Default::default() }
 }
 
-/// Assinatura híbrida: Sr25519 (clássico) + ML-DSA-65 (pós-quântico).
-pub type Signature = HybridSignature;
+/// Assinatura de transacao permanece classica para manter compatibilidade com Apps.
+pub type Signature = MultiSignature;
 
 /// Some way of identifying an account on the chain. We intentionally make it equivalent
 /// to the public key of our transaction signing scheme.

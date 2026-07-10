@@ -146,7 +146,7 @@ pub fn create_benchmark_extrinsic(
 	runtime::UncheckedExtrinsic::new_signed(
 		call,
 		sp_runtime::AccountId32::from(sender.public()).into(),
-		runtime::Signature::Classic(signature.into()),
+		runtime::Signature::Sr25519(signature),
 		tx_ext,
 	)
 }

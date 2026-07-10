@@ -71,6 +71,7 @@ Mensagem curta:
 3. Incompatibilidade de UI publica com tipos grandes
 - Mitigado pela Opcao 2: Apps local mais atual (`yarn start`).
 - Na pratica, em WSL usamos `yarn install --mode=skip-build` para contornar falha de modulos nativos opcionais de hardware, sem impactar o frontend web da demo.
+- Quando ainda ocorreu erro de metadata (`Only support ... length <= 2048`), aplicamos ajuste de tipo no runtime/primitives: assinatura ML-DSA saiu de array fixo para vetor (`Vec<u8>`), removendo a restricao de array grande no registry da UI.
 
 ## 5.1 Evidencia tecnica da Etapa 5 (Opcao 2)
 

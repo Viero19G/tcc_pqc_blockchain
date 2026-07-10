@@ -174,6 +174,13 @@ netsh advfirewall firewall show rule name="WSL Substrate RPC"
   - usar `ws://<IP_WSL>:9944`
   - aplicar regra de firewall.
 
+2.1) Apps conecta, mas falha com erro de metadata `Only support ... length <= 2048`
+- Causa: o frontend ainda encontra tipo de array fixo grande no metadata (`[u8; 3309]`).
+- Acao aplicada neste projeto:
+  - `MlDsaSignature` migrou de array fixo para `Vec<u8>` em `primitives/pqc-crypto/src/mldsa.rs`.
+  - `HybridSignature` removeu `MaxEncodedLen` em `primitives/pqc-crypto/src/hybrid.rs` para compatibilidade com tipo variavel.
+- Validacao: `cargo check -p pqc-crypto` e `SKIP_WASM_BUILD=1 cargo check` concluindo com sucesso.
+
 3) Porta ocupada / processo antigo
 - Sintoma: comportamento inconsistente de bind.
 - Acao:
