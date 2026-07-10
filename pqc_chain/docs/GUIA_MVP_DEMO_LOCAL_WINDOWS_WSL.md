@@ -237,3 +237,29 @@ Evidencias tecnicas obtidas:
 
 Proximo passo de demo:
 - No Apps local, configurar endpoint custom para `ws://192.168.210.231:9944` (com node em `--rpc-external`).
+
+---
+
+## 11. Continuidade apos Etapa 5: Etapa 6 (geracao de chave ML-DSA)
+
+Status: concluida
+
+Arquivo criado:
+- `primitives/pqc-crypto/examples/demo_keygen.rs`
+
+Comando executado:
+
+```bash
+cargo run --release --example demo_keygen -p pqc-crypto
+```
+
+Resultado medido:
+- Tamanho da chave publica: 1952 bytes
+- Tamanho da assinatura: 3309 bytes
+
+Evidencia salva em:
+- `tcc-evidencias/metricas/demo-keygen-output.txt`
+
+Uso na demo:
+- Copiar a chave publica gerada para `pqc.registerKeys`.
+- Copiar a assinatura gerada para `pqc.verifySignature`.

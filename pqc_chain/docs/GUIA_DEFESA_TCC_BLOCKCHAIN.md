@@ -83,6 +83,17 @@ Mensagem curta:
 Mensagem para banca:
 - "Validamos a interface local mais atual para reduzir risco de incompatibilidade de tipagem da UI publica e garantir previsibilidade da demo em ambiente offline/local."
 
+## 5.2 Evidencia tecnica da Etapa 6 (PQC real)
+
+- Utilitario executado: `cargo run --release --example demo_keygen -p pqc-crypto`
+- Medicoes obtidas no ambiente local:
+  - Chave publica ML-DSA-65: 1952 bytes
+  - Assinatura ML-DSA-65: 3309 bytes
+- Evidencia salva em `tcc-evidencias/metricas/demo-keygen-output.txt`
+
+Mensagem para banca:
+- "Nao usamos mock: a chave e assinatura exibidas na demo foram geradas por utilitario real do projeto, com tamanhos compativeis com a documentacao tecnica de PQC."
+
 ## 6. Limites atuais (honestidade tecnica)
 
 - Ambiente de demo em `--dev` (nao e rede de producao).
