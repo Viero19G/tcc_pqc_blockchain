@@ -10,6 +10,8 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+extern crate alloc;
+
 pub use pallet::*;
 
 #[cfg(test)]
@@ -24,12 +26,13 @@ pub use weights::*;
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
+	use alloc::boxed::Box;
 	use frame_support::{
 		pallet_prelude::*,
 		traits::{Currency, ReservableCurrency},
 	};
 	use frame_system::pallet_prelude::*;
-	use sp_runtime::{traits::Saturating, Permill};
+	use sp_runtime::{traits::{Dispatchable, Saturating}, Permill};
 
 	type BalanceOf<T> =
 		<<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
@@ -44,7 +47,7 @@ pub mod pallet {
 	}
 
 	/// Proposta de governança.
-	#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, TypeInfo)]
+	#[derive(Clone, Encode, Decode, PartialEq, Eq, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 	#[scale_info(skip_type_params(T))]
 	pub struct Proposal<T: Config> {
 		pub proposer: T::AccountId,
@@ -57,6 +60,7 @@ pub mod pallet {
 	}
 
 	#[pallet::pallet]
+	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
 	#[pallet::config]
@@ -136,7 +140,7 @@ pub mod pallet {
 		#[pallet::weight(T::WeightInfo::propose())]
 		pub fn propose(
 			origin: OriginFor<T>,
-			call: Box<T::RuntimeCall>,
+			call: Box<<T as Config>::RuntimeCall>,
 			deposit: BalanceOf<T>,
 		) -> DispatchResult {
 			let proposer = ensure_signed(origin)?;
@@ -202,7 +206,7 @@ pub mod pallet {
 
 		/// Fecha e executa (ou rejeita) uma proposta após o período de votação.
 		#[pallet::call_index(2)]
-		#[pallet::weight(T::WeightInfo::close(proposal_id))]
+		#[pallet::weight(T::WeightInfo::close(*proposal_id))]
 		pub fn close(origin: OriginFor<T>, proposal_id: u32) -> DispatchResult {
 			ensure_signed(origin)?;
 			let mut proposal =
@@ -224,7 +228,7 @@ pub mod pallet {
 				Proposals::<T>::insert(proposal_id, &proposal);
 
 				let call = proposal.call.clone();
-				call.dispatch(frame_system::RawOrigin::Root.into())?;
+				let _ = call.dispatch(frame_system::RawOrigin::Root.into()).map_err(|err| err.error)?;
 
 				T::Currency::unreserve(&proposal.proposer, proposal.deposit);
 				Self::deposit_event(Event::Executed { proposal_id });

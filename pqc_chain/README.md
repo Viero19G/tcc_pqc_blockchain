@@ -74,6 +74,11 @@ cargo fmt --all
 SKIP_WASM_BUILD=1 cargo clippy --all-targets --workspace
 ```
 
+## Reproducibilidade do Experimento
+
+- Guia completo (clone, dependencias, build, execucao da chain, execucao do app e validacao fim a fim):
+    - `docs/GUIA_REPRODUCIBILIDADE_EXPERIMENTO.md`
+
 ## PQC — Uso Básico
 
 ### Registrar chaves ML-DSA

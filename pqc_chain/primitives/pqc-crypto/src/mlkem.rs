@@ -1,6 +1,6 @@
 //! ML-KEM (FIPS 203) — Module-Lattice-Based Key Encapsulation Mechanism.
 
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 
 use crate::constants::{
@@ -9,19 +9,19 @@ use crate::constants::{
 };
 
 /// Chave pública ML-KEM-768.
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Encode, Decode, MaxEncodedLen, TypeInfo)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Encode, Decode, DecodeWithMemTracking, MaxEncodedLen, TypeInfo)]
 pub struct MlKemPublicKey(pub [u8; ML_KEM768_PUBLIC_KEY_BYTES]);
 
 /// Seed da chave de decapsulação ML-KEM-768.
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Encode, Decode, MaxEncodedLen, TypeInfo)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Encode, Decode, DecodeWithMemTracking, MaxEncodedLen, TypeInfo)]
 pub struct MlKemSecretKey(pub [u8; ML_KEM768_SECRET_KEY_BYTES]);
 
 /// Ciphertext produzido pelo encapsulador.
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Encode, Decode, MaxEncodedLen, TypeInfo)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Encode, Decode, DecodeWithMemTracking, MaxEncodedLen, TypeInfo)]
 pub struct MlKemCiphertext(pub [u8; ML_KEM768_CIPHERTEXT_BYTES]);
 
 /// Segredo compartilhado derivado (32 bytes).
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Encode, Decode, MaxEncodedLen, TypeInfo)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Encode, Decode, DecodeWithMemTracking, MaxEncodedLen, TypeInfo)]
 pub struct MlKemSharedSecret(pub [u8; ML_KEM_SHARED_SECRET_BYTES]);
 
 /// Par de chaves ML-KEM (geração requer RNG — apenas com `std`).
@@ -48,12 +48,13 @@ impl MlKemKeypair {
 	}
 }
 
-/// Encapsula um segredo compartilhado usando a chave pública do destinatário.
 #[cfg(feature = "std")]
 pub fn encapsulate(public_key: &MlKemPublicKey) -> (MlKemCiphertext, MlKemSharedSecret) {
-	use ml_kem::{kem::Encapsulate, KeyInit, MlKem768};
+	use ml_kem::{array::Array, kem::Encapsulate, EncapsulationKey768, KeySizeUser};
 
-	let ek = ml_kem::EncapsulationKey768::from_bytes(&public_key.0).expect("valid ek");
+	let key: Array<u8, <EncapsulationKey768 as KeySizeUser>::KeySize> =
+		Array::try_from(public_key.0.as_slice()).expect("chave pública com tamanho correto");
+	let ek = EncapsulationKey768::new(&key).expect("chave pública válida");
 	let (ct, ss) = ek.encapsulate();
 
 	let mut ct_bytes = [0u8; ML_KEM768_CIPHERTEXT_BYTES];
@@ -64,15 +65,15 @@ pub fn encapsulate(public_key: &MlKemPublicKey) -> (MlKemCiphertext, MlKemShared
 	(MlKemCiphertext(ct_bytes), MlKemSharedSecret(ss_bytes))
 }
 
-/// Decapsula o ciphertext com a chave secreta, recuperando o segredo compartilhado.
 pub fn decapsulate(
 	secret_key: &MlKemSecretKey,
 	ciphertext: &MlKemCiphertext,
 ) -> Option<MlKemSharedSecret> {
-	use ml_kem::{kem::Decapsulate, KeyInit, MlKem768};
+	use ml_kem::{kem::Decapsulate, ml_kem_768, DecapsulationKey768, Seed};
 
-	let dk = ml_kem::DecapsulationKey768::from_bytes(&secret_key.0).ok()?;
-	let ct = ml_kem::Ciphertext768::from_bytes(&ciphertext.0).ok()?;
+	let seed = Seed::try_from(secret_key.0.as_slice()).ok()?;
+	let dk = DecapsulationKey768::from_seed(seed);
+	let ct = ml_kem_768::Ciphertext::try_from(ciphertext.0.as_slice()).ok()?;
 	let ss = dk.decapsulate(&ct);
 
 	let mut ss_bytes = [0u8; ML_KEM_SHARED_SECRET_BYTES];

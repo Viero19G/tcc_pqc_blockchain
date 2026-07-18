@@ -1,26 +1,22 @@
 //! ML-DSA (FIPS 204) — Module-Lattice-Based Digital Signature Standard.
 
 use alloc::vec::Vec;
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
 
 use crate::constants::{
-	ML_DSA65_PUBLIC_KEY_BYTES, ML_DSA65_SECRET_KEY_BYTES, ML_DSA65_SIGNATURE_BYTES,
+	ML_DSA65_PUBLIC_KEY_BYTES, ML_DSA65_SECRET_KEY_BYTES,
 };
 
-/// Chave pública ML-DSA-65 serializada.
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Encode, Decode, MaxEncodedLen, TypeInfo)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Encode, Decode, DecodeWithMemTracking, MaxEncodedLen, TypeInfo)]
 pub struct MlDsaPublicKey(pub [u8; ML_DSA65_PUBLIC_KEY_BYTES]);
 
-/// Seed da chave de assinatura ML-DSA-65 (somente off-chain / genesis).
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Encode, Decode, MaxEncodedLen, TypeInfo)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Encode, Decode, DecodeWithMemTracking, MaxEncodedLen, TypeInfo)]
 pub struct MlDsaSecretKey(pub [u8; ML_DSA65_SECRET_KEY_BYTES]);
 
-/// Assinatura ML-DSA-65.
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Encode, Decode, MaxEncodedLen, TypeInfo)]
-pub struct MlDsaSignature(pub [u8; ML_DSA65_SIGNATURE_BYTES]);
+#[derive(Clone, PartialEq, Eq, Debug, Encode, Decode, DecodeWithMemTracking, TypeInfo)]
+pub struct MlDsaSignature(pub Vec<u8>);
 
-/// Par de chaves ML-DSA (geração requer RNG — apenas com `std`).
 #[cfg(feature = "std")]
 pub struct MlDsaKeypair {
 	pub public: MlDsaPublicKey,
@@ -29,7 +25,6 @@ pub struct MlDsaKeypair {
 
 #[cfg(feature = "std")]
 impl MlDsaKeypair {
-	/// Gera um par de chaves ML-DSA-65.
 	pub fn generate() -> Self {
 		use ml_dsa::{Generate, KeyExport, Keypair, MlDsa65, SigningKey};
 
@@ -44,34 +39,37 @@ impl MlDsaKeypair {
 		Self { public: MlDsaPublicKey(pk), secret: MlDsaSecretKey(sk) }
 	}
 
-	/// Assina uma mensagem (raw bytes).
 	pub fn sign(&self, message: &[u8]) -> MlDsaSignature {
-		use ml_dsa::{KeyInit, MlDsa65, Signer, SigningKey};
+		use ml_dsa::{MlDsa65, Seed, SignatureEncoding, Signer, SigningKey};
 
-		let signing_key =
-			SigningKey::<MlDsa65>::from_bytes(&self.secret.0).expect("valid secret key seed");
+		let seed = Seed::try_from(self.secret.0.as_slice()).expect("seed tem 32 bytes");
+		let signing_key = SigningKey::<MlDsa65>::from_seed(&seed);
+
 		let sig = signing_key.sign(message);
-		let mut out = [0u8; ML_DSA65_SIGNATURE_BYTES];
-		out.copy_from_slice(sig.to_bytes().as_ref());
+		let out = sig.to_bytes().iter().copied().collect::<Vec<u8>>();
 		MlDsaSignature(out)
 	}
 }
 
-/// Verifica assinatura ML-DSA-65 sobre mensagem raw.
 pub fn verify(message: &[u8], signature: &MlDsaSignature, public_key: &MlDsaPublicKey) -> bool {
-	use ml_dsa::{KeyInit, MlDsa65, Signature, Verifier, VerifyingKey};
+	use ml_dsa::{EncodedSignature, EncodedVerifyingKey, MlDsa65, Signature, Verifier, VerifyingKey};
 
-	let Ok(verifying_key) = VerifyingKey::<MlDsa65>::from_bytes(&public_key.0) else {
+	let Ok(enc_vk) = EncodedVerifyingKey::<MlDsa65>::try_from(public_key.0.as_slice()) else {
 		return false;
 	};
-	let Ok(sig) = Signature::<MlDsa65>::from_bytes(&signature.0) else {
+	let verifying_key = VerifyingKey::<MlDsa65>::decode(&enc_vk);
+
+	let Ok(enc_sig) = EncodedSignature::<MlDsa65>::try_from(signature.0.as_slice()) else {
 		return false;
 	};
+	let Some(sig) = Signature::<MlDsa65>::decode(&enc_sig) else {
+		return false;
+	};
+
 	verifying_key.verify(message, &sig).is_ok()
 }
 
 impl MlDsaPublicKey {
-	/// Deriva AccountId32 via Blake2-256 (padrão Substrate).
 	pub fn to_account_id(&self) -> sp_core::crypto::AccountId32 {
 		use sp_core::crypto::AccountId32;
 		use sp_runtime::traits::Hash;
