@@ -30,8 +30,8 @@ pub enum SignatureScheme {
 pub enum HybridSignature {
 	/// Assinatura clássica Substrate (Sr25519, Ed25519 ou ECDSA).
 	Classic(MultiSignature),
-	/// Assinatura ML-DSA-65 (~3.3 KB).
-	MlDsa65(MlDsaSignature),
+	/// Assinatura ML-DSA-65 (~3.3 KB) + chave pública para validação E2E no extrinsic.
+	MlDsa65 { signature: MlDsaSignature, public: MlDsaPublicKey },
 }
 
 /// Chave pública híbrida correspondente.
@@ -45,7 +45,7 @@ impl HybridSignature {
 	pub fn scheme(&self) -> SignatureScheme {
 		match self {
 			Self::Classic(_) => SignatureScheme::Classic,
-			Self::MlDsa65(_) => SignatureScheme::MlDsa65,
+			Self::MlDsa65 { .. } => SignatureScheme::MlDsa65,
 		}
 	}
 }
@@ -64,12 +64,17 @@ impl Verify for HybridSignature {
 
 	fn verify<L: sp_runtime::traits::Lazy<[u8]>>(
 		&self,
-		msg: L,
+		mut msg: L,
 		signer: &<Self::Signer as IdentifyAccount>::AccountId,
 	) -> bool {
 		match self {
 			Self::Classic(sig) => sig.verify(msg, signer),
-			Self::MlDsa65(_sig) => false,
+			Self::MlDsa65 { signature, public } => {
+				if &public.to_account_id() != signer {
+					return false;
+				}
+				crate::mldsa::verify(msg.get(), signature, public)
+			},
 		}
 	}
 }
@@ -115,16 +120,16 @@ mod tests {
 	fn hybrid_ml_dsa_verify() {
 		let kp = MlDsaKeypair::generate();
 		let msg = b"hybrid signature test";
-		let sig = HybridSignature::MlDsa65(kp.sign(msg));
+		let sig = HybridSignature::MlDsa65 { signature: kp.sign(msg), public: kp.public.clone() };
 		let pk = HybridPublic::MlDsa65(kp.public);
-		assert!(!sig.verify(&msg[..], &pk.clone().into_account()));
+		assert!(sig.verify(&msg[..], &pk.clone().into_account()));
 	}
 
 	#[test]
 	fn scheme_mismatch_fails() {
 		let kp = MlDsaKeypair::generate();
 		let msg = b"test";
-		let sig = HybridSignature::MlDsa65(kp.sign(msg));
+		let sig = HybridSignature::MlDsa65 { signature: kp.sign(msg), public: kp.public.clone() };
 		let wrong_pair = sr25519::Pair::generate().0;
 		let wrong_pk = HybridPublic::Classic(MultiSigner::from(wrong_pair.public()));
 		assert!(!sig.verify(&msg[..], &wrong_pk.clone().into_account()));

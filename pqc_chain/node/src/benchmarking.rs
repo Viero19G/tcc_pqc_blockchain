@@ -11,7 +11,7 @@ use entangle_runtime as runtime;
 use sp_core::{Encode, Pair};
 use sp_inherents::{InherentData, InherentDataProvider};
 use sp_keyring::Sr25519Keyring;
-use sp_runtime::{OpaqueExtrinsic, SaturatedConversion};
+use sp_runtime::{MultiSignature, OpaqueExtrinsic, SaturatedConversion};
 
 use std::{sync::Arc, time::Duration};
 
@@ -146,7 +146,7 @@ pub fn create_benchmark_extrinsic(
 	runtime::UncheckedExtrinsic::new_signed(
 		call,
 		sp_runtime::AccountId32::from(sender.public()).into(),
-		runtime::Signature::Sr25519(signature),
+		runtime::Signature::Classic(MultiSignature::from(signature)),
 		tx_ext,
 	)
 }

@@ -78,6 +78,8 @@ SKIP_WASM_BUILD=1 cargo clippy --all-targets --workspace
 
 - Guia completo (clone, dependencias, build, execucao da chain, execucao do app e validacao fim a fim):
     - `docs/GUIA_REPRODUCIBILIDADE_EXPERIMENTO.md`
+- Guia de metricas + roteiro de demo + docker multi-no:
+    - `docs/GUIA_METRICAS_DEMO_DOCKER.md`
 
 ## PQC — Uso Básico
 

@@ -13,7 +13,7 @@ use alloc::vec::Vec;
 use sp_runtime::{
 	generic, impl_opaque_keys,
 	traits::{BlakeTwo256, IdentifyAccount, Verify},
-	MultiAddress, MultiSignature,
+	MultiAddress,
 };
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -113,7 +113,7 @@ pub fn native_version() -> NativeVersion {
 }
 
 /// Assinatura de transacao permanece classica para manter compatibilidade com Apps.
-pub type Signature = MultiSignature;
+pub type Signature = pqc_crypto::HybridSignature;
 
 /// Some way of identifying an account on the chain. We intentionally make it equivalent
 /// to the public key of our transaction signing scheme.
