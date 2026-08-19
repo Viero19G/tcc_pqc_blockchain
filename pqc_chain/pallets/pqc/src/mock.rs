@@ -1,9 +1,8 @@
 use crate as pallet_pqc;
 
-use frame_support::{derive_impl, parameter_types, traits::ConstU32};
-use sp_core::H256;
+use frame_support::{derive_impl, traits::ConstU64};
 use sp_runtime::{
-	traits::{BlakeTwo256, IdentityLookup},
+	traits::IdentityLookup,
 	BuildStorage,
 };
 
@@ -21,7 +20,7 @@ impl frame_system::Config for Test {
 	type Block = Block;
 	type AccountId = u64;
 	type Lookup = IdentityLookup<u64>;
-	type BlockHashCount = ConstU32<250>;
+	type BlockHashCount = ConstU64<250>;
 	type AccountData = ();
 }
 
