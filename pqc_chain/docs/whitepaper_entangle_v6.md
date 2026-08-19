@@ -166,7 +166,10 @@ O modelo de migração da Entangle está expresso no sistema de tipos das primit
 // primitives/pqc-crypto/src/hybrid.rs
 pub enum HybridSignature {
     Classic(MultiSignature),   // Sr25519 / Ed25519 / ECDSA — 64 bytes
-    MlDsa65(MlDsaSignature),   // FIPS 204 — 3.309 bytes
+    MlDsa65 {
+        signature: MlDsaSignature,
+        public: MlDsaPublicKey,
+    },                         // FIPS 204 — 3.309 bytes
 }
 ```
 
@@ -203,7 +206,7 @@ A mitigação é estrutural: o limite de bloco (`RuntimeBlockLength`) foi dimens
 
 O `pallet-pqc` gerencia o ciclo de vida do material pós-quântico on-chain.
 
-**Armazenamento:** `PqcKeys` (conta → bundle com chave ML-DSA obrigatória, chave ML-KEM opcional e esquema ativo); `ValidatorPqcKeys` (chaves PQ de authorities, preparação do PoS); `Sessions` (sessões ML-KEM, armazenando um identificador público da sessão: o hash BLAKE2b-256 do ciphertext; o segredo compartilhado nunca toca o estado da cadeia); `NextSessionId`.
+**Armazenamento:** `PqcKeys` (conta → bundle com chave ML-DSA obrigatória, chave ML-KEM opcional e esquema ativo); `ValidatorPqcKeys` (chaves PQ de authorities, preparação do PoS); `Sessions` (registros de sessões ML-KEM, armazenando um identificador derivado do ciphertext; o segredo compartilhado nunca toca o estado da cadeia); `NextSessionId`.
 
 **Extrinsics:**
 
@@ -211,7 +214,7 @@ O `pallet-pqc` gerencia o ciclo de vida do material pós-quântico on-chain.
 |---|---|
 | `register_keys(ml_dsa_pk, ml_kem_pk?)` | Registra o bundle PQC; a conta vira pós-quântica. |
 | `verify_signature(message, signature)` | Verificação ML-DSA-65 **on-chain** contra a chave registrada — primitiva de prova para aplicações. |
-| `establish_session(responder, ciphertext)` | Âncora on-chain do handshake ML-KEM: valida o ciphertext contra a chave registrada do respondedor e grava a sessão; a decapsulação ocorre off-chain. |
+| `establish_session(responder, ciphertext)` | Âncora on-chain experimental do handshake ML-KEM: confirma que o respondedor possui chave registrada e grava um identificador derivado do ciphertext; a decapsulação e a confirmação do segredo compartilhado permanecem off-chain. |
 | `remove_keys()` | Revogação do bundle. |
 | `register_validator_keys(...)` | Registro de chaves PQ de authorities (Fase 3). |
 
@@ -271,7 +274,7 @@ A execução com origem Root faz da governança o mecanismo canônico de evoluç
 
 #### 5.1.1 Protocolo funcional (Fases 0–2)
 
-O artefato central está implementado: node Substrate operacional (Aura + GRANDPA, 6 s); primitivas ML-DSA-65/ML-KEM-768 em crate `no_std`, compilável para o alvo WASM do runtime; tipo de assinatura híbrida definido nas primitivas; `pallet-pqc` completo (registro e revogação de chaves, verificação ML-DSA on-chain via `verify_signature`, âncora de sessões ML-KEM, chaves de validador); `pallet-governance` com votação ponderada e execução autônoma. Os dois pallets têm testes unitários. A base de código permanece em refatoração ativa; a consolidação do build da revisão corrente e a ligação da assinatura híbrida à verificação de origem de extrinsics são pendências de integração declaradas na Seção 5.2.
+O artefato central está implementado: node Substrate operacional (Aura + GRANDPA, 6 s); primitivas ML-DSA-65/ML-KEM-768 em crate `no_std`, compilável para o alvo WASM do runtime; tipo de assinatura híbrida definido nas primitivas; `pallet-pqc` funcional para registro e revogação de chaves, verificação ML-DSA on-chain via `verify_signature`, âncora experimental de sessões ML-KEM e registro preparatório de chaves de validador; `pallet-governance` com votação ponderada e execução autônoma. Os dois pallets têm testes unitários. A base de código permanece em refatoração ativa; a consolidação do build da revisão corrente e a ligação da assinatura híbrida à verificação de origem de extrinsics são pendências de integração declaradas na Seção 5.2.
 
 #### 5.1.2 Custos medidos: ECDSA × ML-DSA
 
