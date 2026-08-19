@@ -81,6 +81,62 @@ SKIP_WASM_BUILD=1 cargo clippy --all-targets --workspace
 - Guia de metricas + roteiro de demo + docker multi-no:
     - `docs/GUIA_METRICAS_DEMO_DOCKER.md`
 
+## Reproducao publica: chain + Apps
+
+A versao funcional para a entrega esta na branch `mvp-demo-tcc` da chain e do
+Apps. A branch `pqc-E2E` contem a variante experimental com suporte ao tipo de
+assinatura ML-DSA no runtime.
+
+### 1. Clonar a chain
+
+```bash
+git clone https://github.com/Viero19G/tcc_pqc_blockchain.git
+cd tcc_pqc_blockchain/pqc_chain
+git switch mvp-demo-tcc
+```
+
+### 2. Compilar e executar a chain
+
+```bash
+rustup target add wasm32-unknown-unknown
+cargo build -p entangle-node
+./target/debug/entangle-node \
+    --chain ./entangle-local-spec.json \
+    --tmp --alice \
+    --node-key 0000000000000000000000000000000000000000000000000000000000000001 \
+    --rpc-external --rpc-cors=all --force-authoring
+```
+
+O endpoint RPC fica em `ws://127.0.0.1:9944`.
+
+### 3. Clonar e executar o Apps do fork
+
+Em outro terminal:
+
+```bash
+git clone https://github.com/Viero19G/apps.git
+cd apps
+git switch main
+yarn install
+yarn start
+```
+
+Abra `http://localhost:3000`, conecte em `ws://127.0.0.1:9944` e acesse
+Developer -> Extrinsics. Para reproduzir o fluxo PQC, use `pqc.registerKeys` e
+`pqc.verifySignature`. Para a variante E2E experimental, troque `mvp-demo-tcc`
+por `pqc-E2E` nos dois repositorios.
+
+### 4. Validar a entrega
+
+```bash
+cargo check -p entangle-node
+cargo test -p pqc-crypto
+cargo test -p pallet-pqc
+cargo test -p pallet-governance
+```
+
+Os registros de metricas e evidencias ficam em `tcc-evidencias/metricas/`.
+
 ## PQC — Uso Básico
 
 ### Registrar chaves ML-DSA
@@ -98,7 +154,7 @@ Pqc::register_keys(
 
 O runtime usa `HybridSignature`:
 - `Classic(Sr25519)` — compatibilidade com tooling Substrate existente
-- `MlDsa65(...)` — assinatura pós-quântica (~3309 bytes)
+- `MlDsa65 { signature, public }` — assinatura pós-quântica (~3309 bytes) com chave pública para verificação
 
 ## Governança — Uso Básico
 
